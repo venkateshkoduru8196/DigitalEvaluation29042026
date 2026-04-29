@@ -10,44 +10,58 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v4
+      # CHECKOUT
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      # FRONTEND
-      - uses: actions/setup-node@v4
+      # =========================
+      # FRONTEND (React / Vite)
+      # =========================
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
           node-version: 20
 
-      - name: Install Frontend
-        working-directory: ./DigitalEvaluationReact
+      - name: Install Frontend Dependencies
+        working-directory: DigitalEvaluationReact
         run: npm install
 
       - name: Build Frontend
-        working-directory: ./DigitalEvaluationReact
+        working-directory: DigitalEvaluationReact
         run: npm run build
 
-      - name: Copy Frontend to Backend
+      # COPY FRONTEND BUILD INTO BACKEND WWWROOT
+      - name: Copy Frontend to Backend wwwroot
+        shell: cmd
         run: |
           if exist DIGITALEVALUATIONAPT\wwwroot rmdir /s /q DIGITALEVALUATIONAPT\wwwroot
           mkdir DIGITALEVALUATIONAPT\wwwroot
-          xcopy /E /I /Y DigitalEvaluationReact\dist DIGITALEVALUATIONAPT\wwwroot
+          xcopy DigitalEvaluationReact\dist DIGITALEVALUATIONAPT\wwwroot /E /I /Y
 
-      # BACKEND
-      - uses: actions/setup-dotnet@v4
+      # =========================
+      # BACKEND (.NET 8)
+      # =========================
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
 
-      - name: Publish Backend
-        working-directory: ./DIGITALEVALUATIONAPT
-        run: |
-          dotnet restore
-          dotnet publish -c Release -o ./publish
+      - name: Restore Backend Dependencies
+        working-directory: DIGITALEVALUATIONAPT
+        run: dotnet restore
 
+      - name: Publish Backend
+        working-directory: DIGITALEVALUATIONAPT
+        run: dotnet publish -c Release -o ./publish
+
+      # =========================
       # FTP DEPLOY
-      - name: Deploy to Hosting
+      # =========================
+      - name: Deploy to Hosting via FTP
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
           username: ${{ secrets.FTP_USERNAME }}
           password: ${{ secrets.FTP_PASSWORD }}
           local-dir: ./DIGITALEVALUATIONAPT/publish/
-          server-dir: /httpdocs/
+          server-dir: ${{ secrets.FTP_SERVER_DIR }}
