@@ -10,12 +10,25 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      # CHECKOUT
+      # =========================
+      # CHECKOUT REPOSITORY
+      # =========================
       - name: Checkout Repository
         uses: actions/checkout@v4
 
       # =========================
-      # FRONTEND (React / Vite)
+      # DEBUG REPO STRUCTURE
+      # =========================
+      - name: Show Root Folder Structure
+        shell: cmd
+        run: dir
+
+      - name: Show DigitalEvaluationReact Folder Structure
+        shell: cmd
+        run: dir DigitalEvaluationReact
+
+      # =========================
+      # FRONTEND SETUP (React/Vite)
       # =========================
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -23,14 +36,16 @@ jobs:
           node-version: 20
 
       - name: Install Frontend Dependencies
-        working-directory: DigitalEvaluationReact
+        working-directory: ./DigitalEvaluationReact
         run: npm install
 
       - name: Build Frontend
-        working-directory: DigitalEvaluationReact
+        working-directory: ./DigitalEvaluationReact
         run: npm run build
 
-      # COPY FRONTEND BUILD INTO BACKEND WWWROOT
+      # =========================
+      # COPY FRONTEND BUILD TO BACKEND
+      # =========================
       - name: Copy Frontend to Backend wwwroot
         shell: cmd
         run: |
@@ -39,7 +54,7 @@ jobs:
           xcopy DigitalEvaluationReact\dist DIGITALEVALUATIONAPT\wwwroot /E /I /Y
 
       # =========================
-      # BACKEND (.NET 8)
+      # BACKEND SETUP (.NET)
       # =========================
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
@@ -47,17 +62,17 @@ jobs:
           dotnet-version: 8.0.x
 
       - name: Restore Backend Dependencies
-        working-directory: DIGITALEVALUATIONAPT
+        working-directory: ./DIGITALEVALUATIONAPT
         run: dotnet restore
 
       - name: Publish Backend
-        working-directory: DIGITALEVALUATIONAPT
+        working-directory: ./DIGITALEVALUATIONAPT
         run: dotnet publish -c Release -o ./publish
 
       # =========================
       # FTP DEPLOY
       # =========================
-      - name: Deploy to Hosting via FTP
+      - name: Deploy to Hosting
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
           server: ${{ secrets.FTP_SERVER }}
